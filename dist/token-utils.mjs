@@ -1,0 +1,145 @@
+class TokenUtils {
+  constructor(name, network) {
+    return this._init(name, network)
+  }
+
+  get imported() {
+    return globalThis.__tokenLists__.imported
+  }
+
+  get lists() {
+    const lists = { ...globalThis.__tokenLists__ };
+
+    delete lists.selected;
+    delete lists.ETH;
+    delete lists.imported;
+    return lists
+  }
+
+  get ETH() {
+    return globalThis.__tokenLists__.ETH
+  }
+
+  isHex(string) {
+    if (typeof(string) !== "string" || !string.match(/^0x[0-9A-Fa-f]*$/)) {
+        return false
+    }
+    return true;
+  }
+
+  async _init(name, network) {
+    if (!name) name = '0x';
+    if (!network) network = 'kovan';
+    if (!globalThis.__tokenLists__) {
+      const importee = await Promise.resolve().then(function () { return tokenList; });
+      globalThis.__tokenLists__ = {};
+      globalThis.__tokenLists__[name] = await new importee.default(name, network);
+      globalThis.__tokenLists__.selected = name;
+      globalThis.__tokenLists__.ETH = {
+        icon: {
+          dark: 'https://raw.githubusercontent.com/CoinsSwap/token-list/main/build/icons/dark/eth.svg',
+          white: 'https://raw.githubusercontent.com/CoinsSwap/token-list/main/build/icons/white/eth.svg',
+          color: 'https://raw.githubusercontent.com/CoinsSwap/token-list/main/build/icons/color/eth.svg'
+        },
+        dominantColor: '#c9d2f6',
+        symbol: 'ETH',
+        name: 'Ether',
+        address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        decimals: 18
+      };
+      globalThis.__tokenLists__.imported = [name];
+    }
+    return this
+  }
+
+  isEthereumAddress(address) {
+    if (address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' ||
+        address === '0x0000000000000000000000000000000000000000') return true
+
+    return false
+  }
+
+  isAddress(address) {
+    const hasPrefix = address.slice(0, 2) === '0x';
+    // a prefixed eth address is 21 bytes long
+    if (address.length > 42 || address.length < 40) return false
+    // without prefix
+    if (!hasPrefix && address.length === 40 && this.isHex(address)) return true
+    // with prefix
+    if (hasPrefix && address.length === 42 &&
+      this.isHex(address)) return true
+    // no other cases to handle
+    return false
+  }
+
+  /**
+   * @param {String} token - Contract Address or token symbol
+   */
+  tokenInfo(token) {
+    if (token.symbol && token.address && token.decimals) return token
+    if (token === 'ETH' || isEthereumAddress(token)) return globalThis.__tokenLists__.ETH
+
+    if (this.isAddress(token)) {
+      return Object.values(css.lists[css.lists.selected])
+        .filter(value => value.address === token)[0]
+    }
+
+    if (!globalThis.__tokenLists__[globalThis.__tokenLists__.selected][token]) {
+      throw `nothing found for ${token}`
+    }
+
+    return globalThis.__tokenLists__[globalThis.__tokenLists__.selected][token]
+  }
+}
+
+class TokenList {
+  /**
+   * @param {String} name
+   * @param {String} network
+   * @param {String} network
+   */
+  constructor(name, network, iconPrefix) {
+    if (!name) name = 'uniswap';
+    if (!network) network = 'mainnet';
+    if (!iconPrefix) iconPrefix = 'https://raw.githubusercontent.com/CoinsSwap/token-list/main/build/icons';
+
+    this.network = network;
+    this.name = name;
+    this.iconPrefix = iconPrefix;
+
+    return this.getList()
+  }
+
+  transformTokens(tokens) {
+    for (const key of Object.keys(tokens)) {
+      tokens[key].icon = {
+        black: `${this.iconPrefix}/black/${tokens[key].icon}`,
+        color: `${this.iconPrefix}/color/${tokens[key].icon}`,
+        white: `${this.iconPrefix}/white/${tokens[key].icon}`
+      };
+    }
+
+    return tokens
+  }
+
+  async getList(name, network, prefix) {
+    if (!name) name = this.name;
+    if (!network) network = this.network;
+
+    if (!globalThis.fetch) {
+      const importee = await import('node-fetch');
+      globalThis.fetch = importee.default;
+    }
+    prefix = prefix || 'https://raw.githubusercontent.com/CoinsSwap/token-list/main/build/tokens';
+    const response = await fetch(`${prefix}/${network}/${name}.json`);
+    return this.transformTokens(await response.json())
+
+  }
+}
+
+var tokenList = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  'default': TokenList
+});
+
+export default TokenUtils;

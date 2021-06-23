@@ -1,0 +1,21 @@
+{
+  "name": "@coinsswap/token-utils",
+  "version": "0.1.0",
+  "description": "## install ```sh npm i --save @coinsswap/token-utils ```",
+  "main": "dist/token-utils.js",
+  "module": "dist/token-utils.mjs",
+  "scripts": {
+    "c": "rollup -c",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "rollup": "^2.45.2",
+    "tape": "^5.2.2"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  }
+}
